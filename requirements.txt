@@ -1,0 +1,5 @@
+streamlit
+aiohttp
+tenacity
+pyjwt
+pytz
