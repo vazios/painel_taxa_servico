@@ -7,7 +7,7 @@ from datetime import datetime, date
 import services
 import ui
 
-async def run_full_analysis(token, dt_inicio, dt_fim):
+async def run_full_analysis(token, dt_inicio, dt_fim, placeholder):
     """Orquestra as chamadas de API para ambos os relatórios de forma assíncrona."""
     headers = {"Authorization": f"Bearer {token}"}
     
@@ -18,7 +18,7 @@ async def run_full_analysis(token, dt_inicio, dt_fim):
     }
     
     async with aiohttp.ClientSession() as session:
-        task_vendas = asyncio.create_task(services.run_report_fetching(token, dt_inicio, dt_fim))
+        task_vendas = asyncio.create_task(services.run_report_fetching(token, dt_inicio, dt_fim, placeholder))
         task_pagamentos = asyncio.create_task(services.fetch_payments_data_async(session, headers, params_payments))
         vendas_result, payments_data = await asyncio.gather(task_vendas, task_pagamentos)
         
@@ -55,11 +55,13 @@ def main():
                 st.error("Token JWT inválido ou expirado.")
             else:
                 try:
+                    status_placeholder = st.empty()
                     with st.spinner(f"Buscando dados de {data_inicio.strftime('%d/%m/%Y')} a {data_fim.strftime('%d/%m/%Y')}..."):
                         dt_inicio = datetime.combine(data_inicio, datetime.min.time())
                         dt_fim = datetime.combine(data_fim, datetime.max.time())
-                        pedidos, totais_vendas, payments, page_info = asyncio.run(run_full_analysis(token, dt_inicio, dt_fim))
-
+                        pedidos, totais_vendas, payments, page_info = asyncio.run(run_full_analysis(token, dt_inicio, dt_fim, status_placeholder))
+                    
+                    status_placeholder.empty()
                     st.success(f"Análise concluída! Foram processadas {page_info['fetched']} de {page_info['total']} páginas de dados.")
                     if page_info['skipped']:
                         st.warning(f"As seguintes páginas não puderam ser baixadas: {', '.join(map(str, page_info['skipped']))}")
